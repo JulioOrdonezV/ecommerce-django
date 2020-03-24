@@ -10,7 +10,7 @@ class Item(models.Model):
 
 class OrderItem(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-
+    cantidad = models.IntegerField(default=1)
 
 class Order(models.Model):
     fecha_inicio = models.DateTimeField(auto_now_add=True)
