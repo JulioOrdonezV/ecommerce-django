@@ -4,8 +4,9 @@ from django.shortcuts import render
 from cookie_store.models import Item
 
 
-def item_list(request):
+def itemDetailView(request):
+    #just use one product
     context = {
-        'items': Item.objects.all()
+        'items': Item.objects.first()
     }
     return render(request, 'product-page.html', context)
