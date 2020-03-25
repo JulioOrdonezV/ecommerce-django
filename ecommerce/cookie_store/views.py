@@ -16,6 +16,9 @@ class OrderSummaryView(View):
             return redirect("/")
 
 
+def checkout(request):
+    return render(request, "checkout-page.html")
+
 def item_detail(request):
     #just use one product
     context = {
