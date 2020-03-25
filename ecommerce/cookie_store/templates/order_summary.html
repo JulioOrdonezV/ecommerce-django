@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <main>
+    <div class="container">
+
+    <div class="table-responsive text-nowrap">
+        <h2>Order Summary</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Item</th>
+            <th scope="col">Price</th>
+            <th scope="col">Quantity</th>
+            <th scope="col">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">1</th>
+            <td>{{ order.items.nombre }}</td>
+            <td>{{ order.items.precio }}</td>
+            <td>{{ order.cantidad }}</td>
+            <td>???</td>
+          </tr>
+          <tr>
+
+        </tbody>
+      </table>
+
+    </div>
+    </div>
+    </main>
+{% endblock content %}

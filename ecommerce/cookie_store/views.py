@@ -1,10 +1,19 @@
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, get_object_or_404, redirect
-
-# Create your views here.
-from django.utils import timezone
+from django.views.generic.base import View
 
 from cookie_store.models import Item, Order
+
+
+class OrderSummaryView(View):
+    def get(self, *args, **kwargs):
+        try:
+            order = Order.objects.get(completada=False)
+            return render(self.request,"order_summary.html", context={'order': order} )
+        except ObjectDoesNotExist:
+            messages.error(self.request, "You don't have an order")
+            return redirect("/")
 
 
 def item_detail(request):
