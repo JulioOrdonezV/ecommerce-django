@@ -8,6 +8,7 @@ class Item(models.Model):
     nombre = models.CharField(max_length=100)
     precio = models.FloatField()
 
+
     def __str__(self):
         return self.nombre
     def get_add_to_cart_url(self):
@@ -16,13 +17,8 @@ class Item(models.Model):
         })
 
 
-class OrderItem(models.Model):
-    item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    cantidad = models.IntegerField(default=1)
-
-
 class Order(models.Model):
-    fecha_inicio = models.DateTimeField(auto_now_add=True)
-    fecha_orden = models.DateTimeField()
+    fecha_orden = models.DateTimeField(auto_now_add=True)
     completada = models.BooleanField(default=False)
-    items = models.ManyToManyField(OrderItem)
+    cantidad = models.IntegerField(default=1)
+    items = models.ForeignKey(Item, on_delete=models.CASCADE)
