@@ -22,3 +22,6 @@ class Order(models.Model):
     completada = models.BooleanField(default=False)
     cantidad = models.IntegerField(default=1)
     items = models.ForeignKey(Item, on_delete=models.CASCADE)
+
+    def get_total_price(self):
+        return self.items.precio * self.cantidad
