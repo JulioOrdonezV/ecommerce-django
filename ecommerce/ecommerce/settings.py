@@ -27,7 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+STRIPE_API_KEY = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+STRIPE_PUBLIC_KEY = 'pk_test_TYooMQauvdEDq54NiTphI7jx'
 # Application definition
 
 INSTALLED_APPS = [
