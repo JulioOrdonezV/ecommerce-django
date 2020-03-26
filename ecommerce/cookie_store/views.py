@@ -105,9 +105,10 @@ def add_to_cart(request, pk):
         items=item
     )
     if created:
-        messages.info(request, "Galleta agregada al carrito")
+        messages.info(request, "Cookie added to the shopping cart")
+
     else:
         order.cantidad += 1
         order.save()
-        messages.info(request, "Cantidad de galletas actualizada")
+        messages.info(request, "Cookie quantity updated")
     return redirect("cookie_store:item-detail")
