@@ -13,33 +13,31 @@
       <!-- Heading -->
       <h2 class="my-5 h2 text-center">Payment</h2>
 
-      <!--Grid row-->
-      <div class="row">
-
         <!--Grid column-->
-        <div class="col-md-12 mb-4">
+        <div class="col-md-6 mb-4 offset-md-3">
 
           <!--Card-->
             <!--Card content-->
             <form action="{{ payment }}" method="post" class="card-body">
                 {% csrf_token %}
-                <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="cc-name">Name on card</label>
-                  <input type="text" class="form-control" id="cc-name" placeholder="" required>
-                  <small class="text-muted">Full name as displayed on card</small>
-                  <div class="invalid-feedback">
-                    Name on card is required
-                  </div>
+                <div class="row justify-content-center">
+                    <div class="col-md-12 mb-3">
+                      <label for="cc-name">Name on card</label>
+                      <input type="text" class="form-control" id="cc-name" placeholder="" required>
+                      <small class="text-muted">Full name as displayed on card</small>
+                      <div class="invalid-feedback">
+                        Name on card is required
+                      </div>
+                    </div>
                 </div>
-
-                  <div class="col-md-6 mb-3">
-                      {{ form.cc_number.label_tag }}
-                      {{ form.cc_number }}
-                  <div class="invalid-feedback">
-                    Credit card number is required
-                  </div>
-                </div>
+                <div class="row justify-content-center">
+                      <div class="col-md-12 mb-3">
+                          {{ form.cc_number.label_tag }}
+                          {{ form.cc_number }}
+                      <div class="invalid-feedback">
+                        Credit card number is required
+                      </div>
+                    </div>
               </div>
               <div class="row">
                 <div class="col-md-3 mb-3">
@@ -58,21 +56,12 @@
                 </div>
               </div>
               <hr class="mb-4">
-              <button class="btn btn-primary btn-lg btn-block" type="submit">Continue to checkout</button>
+              <button class="btn btn-primary btn-lg btn-block" type="submit">Continue to payment</button>
 
             </form>
 
-          </div>
-          <!--/.Card-->
-
         </div>
-        <!--Grid column-->
-
-        <!--Grid column-->
-
-
-      </div>
-      <!--Grid row-->
+          <!--/.Card-->
 
     </div>
   </main>
