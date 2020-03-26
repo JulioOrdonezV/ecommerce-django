@@ -3,7 +3,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic.base import View
 
-from cookie_store.forms import CheckoutForm
+from cookie_store.forms import CheckoutForm, CreditCardForm
 from cookie_store.models import Item, Order
 
 
@@ -32,6 +32,20 @@ class checkoutView(View):
             return redirect('cookie_store:item-detail')
         messages.warning(self.request, "Something didn't work")
         return redirect('cookie_store:item-detail')
+
+
+class PaymentView(View):
+    def get(self, *args, **kwargs):
+        form = CreditCardForm()
+        context = {
+            'form': form
+        }
+        return render(self.request, "payment.html", context)
+    def post(self, *args, **kwargs):
+        form = CreditCardForm(self.request.POST or None)
+        if form.is_valid():
+            pass
+        return redirect('coookie_store:item-detail')
 
 
 def item_detail(request):
