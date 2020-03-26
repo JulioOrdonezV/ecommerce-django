@@ -1,11 +1,14 @@
-import datetime
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic.base import View
+
 import stripe
-stripe.api_key = "sk_test_njwzPBvB7WhwA7SCr1lBCeRR00andF7IgQ"
+
+from ecommerce.settings import STRIPE_API_KEY, STRIPE_PUBLIC_KEY
+
+stripe.api_key = STRIPE_API_KEY
 
 from cookie_store.forms import CheckoutForm, CreditCardForm
 from cookie_store.models import Item, Order, Payment
@@ -61,7 +64,8 @@ class PaymentView(View):
                     'exp_month': expiry.month,
                     'exp_year': expiry.year,
                     'cvc': cvc
-                }
+                },
+                api_key= STRIPE_PUBLIC_KEY
             )
             order = Order.objects.get(completada=False)
             total = int(order.get_total_price() * 100) #cents
@@ -75,7 +79,7 @@ class PaymentView(View):
             order.completada = True
             payment = Payment()
             payment.stripe_charge_id = charge['id']
-            payment.credit_card = "************" + number[:12]
+            payment.credit_card = "*" * (len(number) - 4) + number[-4:]
             payment.amount = order.get_total_price()
             payment.save()
             order.payment = payment
