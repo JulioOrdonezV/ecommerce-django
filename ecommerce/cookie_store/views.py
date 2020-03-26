@@ -3,6 +3,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic.base import View
 
+from cookie_store.forms import CheckoutForm
 from cookie_store.models import Item, Order
 
 
@@ -16,8 +17,22 @@ class OrderSummaryView(View):
             return redirect("/")
 
 
-def checkout(request):
-    return render(request, "checkout-page.html")
+class checkoutView(View):
+    def get(self, *args, **kwargs):
+        form = CheckoutForm()
+        context = {
+            'form': form
+        }
+        return render(self.request, 'checkout-page.html', context)
+    def post(self, *args, **kwargs):
+        form = CheckoutForm(self.request.POST or None)
+        if form.is_valid():
+            payment_option = form.cleaned_data.get('payment_options')
+            messages.warning(self.request, "Order placed")
+            return redirect('cookie_store:item-detail')
+        messages.warning(self.request, "Something didn't work")
+        return redirect('cookie_store:item-detail')
+
 
 def item_detail(request):
     #just use one product

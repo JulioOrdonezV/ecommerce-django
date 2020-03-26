@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load crispy_forms_tags %}
 {% load cart_tags %}
 {% block content %}
 
@@ -61,8 +62,8 @@
           <div class="card">
 
             <!--Card content-->
-            <form class="card-body">
-
+            <form method="POST" class="card-body">
+                {% csrf_token %}
               <!--Grid row-->
               <div class="row">
 
@@ -71,8 +72,8 @@
 
                   <!--firstName-->
                   <div class="md-form ">
-                    <input type="text" id="firstName" class="form-control">
-                    <label for="firstName" class="">First name</label>
+                      {{ form.first_name }}
+                      <label for="firstName" class="">First name</label>
                   </div>
 
                 </div>
@@ -83,7 +84,7 @@
 
                   <!--lastName-->
                   <div class="md-form">
-                    <input type="text" id="lastName" class="form-control">
+                    {{ form.last_name }}
                     <label for="lastName" class="">Last name</label>
                   </div>
 
@@ -93,14 +94,12 @@
               </div>
 
               <div class="d-block my-3">
-                <div class="custom-control custom-radio">
-                  <input id="credit" name="paymentMethod" type="radio" class="custom-control-input" checked required>
-                  <label class="custom-control-label" for="credit">Stripe</label>
-                </div>
-                <div class="custom-control custom-radio">
-                  <input id="paypal" name="paymentMethod" type="radio" class="custom-control-input" required>
-                  <label class="custom-control-label" for="paypal">Paypal</label>
-                </div>
+              {% for value, name in form.fields.payment_options.choices %}
+                  <div class="custom-control custom-radio">
+                    <input id={{ name }} name="payment_options" value={{ value }} type="radio" class="custom-control-input" checked required>
+                    <label class="custom-control-label" for="{{ name }}">{{ name }}</label>
+                 </div>
+              {% endfor %}
               </div>
               <div class="row">
                 <div class="col-md-6 mb-3">
