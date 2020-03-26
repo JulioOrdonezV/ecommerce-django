@@ -21,9 +21,9 @@
 
           <!--Card-->
             <!--Card content-->
-            <form class="card-body">
-
-              <div class="row">
+            <form action="{{ payment }}" method="post" class="card-body">
+                {% csrf_token %}
+                <div class="row">
                 <div class="col-md-6 mb-3">
                   <label for="cc-name">Name on card</label>
                   <input type="text" class="form-control" id="cc-name" placeholder="" required>

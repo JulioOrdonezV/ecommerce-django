@@ -1,10 +1,14 @@
+import datetime
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.views.generic.base import View
+import stripe
+stripe.api_key = "sk_test_njwzPBvB7WhwA7SCr1lBCeRR00andF7IgQ"
 
 from cookie_store.forms import CheckoutForm, CreditCardForm
-from cookie_store.models import Item, Order
+from cookie_store.models import Item, Order, Payment
 
 
 class OrderSummaryView(View):
@@ -24,12 +28,13 @@ class checkoutView(View):
             'form': form
         }
         return render(self.request, 'checkout-page.html', context)
+
     def post(self, *args, **kwargs):
         form = CheckoutForm(self.request.POST or None)
         if form.is_valid():
             payment_option = form.cleaned_data.get('payment_options')
-            messages.warning(self.request, "Order placed")
-            return redirect('cookie_store:item-detail')
+            return redirect(reverse("cookie_store:payment", kwargs={
+            'payment_option': payment_option }))
         messages.warning(self.request, "Something didn't work")
         return redirect('cookie_store:item-detail')
 
@@ -38,13 +43,48 @@ class PaymentView(View):
     def get(self, *args, **kwargs):
         form = CreditCardForm()
         context = {
-            'form': form
+            'form': form,
+            'payment': kwargs.get('payment_option')
         }
         return render(self.request, "payment.html", context)
+
     def post(self, *args, **kwargs):
         form = CreditCardForm(self.request.POST or None)
         if form.is_valid():
-            pass
+
+            expiry  = form.cleaned_data.get('cc_expiry')
+            cvc = form.cleaned_data.get('cc_code')
+            number = form.cleaned_data.get('cc_number')
+            token = stripe.Token.create(
+                card={
+                    'number': number,
+                    'exp_month': expiry.month,
+                    'exp_year': expiry.year,
+                    'cvc': cvc
+                }
+            )
+            order = Order.objects.get(completada=False)
+            total = int(order.get_total_price() * 100) #cents
+            charge = stripe.Charge.create(
+                amount=total,
+                currency='usd',
+                description='Example charge',
+                source=token,
+            )
+
+            order.completada = True
+            payment = Payment()
+            payment.stripe_charge_id = charge['id']
+            payment.credit_card = "************" + number[:12]
+            payment.amount = order.get_total_price()
+            payment.save()
+            order.payment = payment
+            order.save()
+
+            messages.success(self.request, "Payment processed successfully")
+            return redirect("cookie_store:item-detail")
+
+
         return redirect('coookie_store:item-detail')
 
 

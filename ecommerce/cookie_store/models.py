@@ -21,7 +21,15 @@ class Order(models.Model):
     fecha_orden = models.DateTimeField(auto_now_add=True)
     completada = models.BooleanField(default=False)
     cantidad = models.IntegerField(default=1)
-    items = models.ForeignKey(Item, on_delete=models.CASCADE)
-
+    items = models.ForeignKey("Item", on_delete=models.CASCADE)
+    payment = models.ForeignKey("Payment", on_delete=models.SET_NULL,
+                                blank=True, null=True)
     def get_total_price(self):
         return self.items.precio * self.cantidad
+
+
+class Payment(models.Model):
+    credit_card = models.CharField(max_length=20)
+    stripe_charge_id = models.CharField(max_length=50)
+    amount = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
