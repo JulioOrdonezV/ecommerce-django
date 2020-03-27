@@ -91,39 +91,32 @@ class PaymentView(View):
                 #print('Status is: %s' % e.http_status)
                 messages.error(self.request,f"{e.errortype}" + f"{e.error.code}" + f"{e.error.message}" )
                 return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option'),
-                    'form': form}))
+                    'payment_option': kwargs.get('payment_option')}))
             except stripe.error.RateLimitError as e:
                 messages.warning(self.request,"Too many requests made to the API too quickly")
                 return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option'),
-                    'form': form}))
+                    'payment_option': kwargs.get('payment_option')}))
             except stripe.error.InvalidRequestError as e:
                 messages.warning(self.request,"Invalid parameters were supplied to Stripe's API")
                 return redirect(reverse("cookie_store:payment", kwargs={
-                            'payment_option': kwargs.get('payment_option'),
-                            'form': form}))
+                    'payment_option': kwargs.get('payment_option')}))
             except stripe.error.AuthenticationError as e:
                 messages.warning(self.request, "Authentication with Stripe's API failed")
                 return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option'),
-                    'form': form}))
+                    'payment_option': kwargs.get('payment_option')}))
             except stripe.error.APIConnectionError as e:
                 messages.warning(self.request,"Network communication with Stripe failed")
                 return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option'),
-                    'form': form}))
+                    'payment_option': kwargs.get('payment_option')}))
             except stripe.error.StripeError as e:
                 messages.warning(self.request, "Something went wrong, you haven't been charged. Try again")
                 return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option'),
-                    'form': form}))
+                    'payment_option': kwargs.get('payment_option')}))
             except Exception as e:
                 # TODO enable logging
                 messages.warning(self.request, "Something unexpected happened!")
                 return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option'),
-                    'form': form}))
+                    'payment_option': kwargs.get('payment_option')}))
 
 
 
@@ -132,9 +125,7 @@ class PaymentView(View):
         else:
             messages.warning(self.request, form.errors)
             return redirect(reverse("cookie_store:payment", kwargs={
-                'payment_option': kwargs.get('payment_option'),
-                'form': form
-            }))
+                'payment_option': kwargs.get('payment_option')}))
 
         return redirect('coookie_store:item-detail')
 
