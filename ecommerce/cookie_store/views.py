@@ -40,8 +40,11 @@ class checkoutView(View):
                 return redirect("cookie_store:payment", payment_option='stripe')
             elif payment_option == 'P':
                 return redirect("cookie_store:payment", payment_option='pagadito')
-        messages.warning(self.request, "Something didn't work")
-        return redirect('cookie_store:item-detail')
+            else:
+                messages.warning(self.request, "Invalid payment option selected")
+                return redirect('cookie_store:checkout')
+        messages.warning(self.request, form.errors)
+        return redirect('cookie_store:order-sumary')
 
 
 class PaymentView(View):
@@ -92,7 +95,9 @@ class PaymentView(View):
                 # Since it's a decline, stripe.error.CardError will be caught
                 #print('Status is: %s' % e.http_status)
                 #e.error.type, e.error.code
-                messages.error(self.request,f"{e.error.message}")
+                body = e.json_body
+                err = body.get('error',{})
+                messages.error(self.request,f"{err.get('message')}")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.RateLimitError as e:
                 messages.warning(self.request,"Too many requests made to the API too quickly")
