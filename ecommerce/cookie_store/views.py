@@ -89,7 +89,8 @@ class PaymentView(View):
                 #TODO enable logging
                 # Since it's a decline, stripe.error.CardError will be caught
                 #print('Status is: %s' % e.http_status)
-                messages.error(self.request,f"{e.errortype}" + f"{e.error.code}" + f"{e.error.message}" )
+                #e.error.type, e.error.code
+                messages.error(self.request,f"{e.error.message}")
                 return redirect(reverse("cookie_store:payment", kwargs={
                     'payment_option': kwargs.get('payment_option')}))
             except stripe.error.RateLimitError as e:
