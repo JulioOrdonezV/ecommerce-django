@@ -36,8 +36,10 @@ class checkoutView(View):
         form = CheckoutForm(self.request.POST or None)
         if form.is_valid():
             payment_option = form.cleaned_data.get('payment_options')
-            return redirect(reverse("cookie_store:payment", kwargs={
-            'payment_option': payment_option }))
+            if payment_option == 'S':
+                return redirect("cookie_store:payment", payment_option='stripe')
+            elif payment_option == 'P':
+                return redirect("cookie_store:payment", payment_option='pagadito')
         messages.warning(self.request, "Something didn't work")
         return redirect('cookie_store:item-detail')
 
@@ -91,36 +93,26 @@ class PaymentView(View):
                 #print('Status is: %s' % e.http_status)
                 #e.error.type, e.error.code
                 messages.error(self.request,f"{e.error.message}")
-                return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option')}))
+                return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.RateLimitError as e:
                 messages.warning(self.request,"Too many requests made to the API too quickly")
-                return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option')}))
+                return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.InvalidRequestError as e:
                 messages.warning(self.request,"Invalid parameters were supplied to Stripe's API")
-                return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option')}))
+                return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.AuthenticationError as e:
                 messages.warning(self.request, "Authentication with Stripe's API failed")
-                return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option')}))
+                return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.APIConnectionError as e:
                 messages.warning(self.request,"Network communication with Stripe failed")
-                return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option')}))
+                return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.StripeError as e:
                 messages.warning(self.request, "Something went wrong, you haven't been charged. Try again")
-                return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option')}))
+                return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except Exception as e:
                 # TODO enable logging
                 messages.warning(self.request, "Something unexpected happened!")
-                return redirect(reverse("cookie_store:payment", kwargs={
-                    'payment_option': kwargs.get('payment_option')}))
-
-
-
+                return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             messages.success(self.request, "Payment processed successfully")
             return redirect("cookie_store:item-detail")
         else:
