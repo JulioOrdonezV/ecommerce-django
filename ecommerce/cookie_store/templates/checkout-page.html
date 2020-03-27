@@ -3,7 +3,11 @@
 {% load crispy_forms_tags %}
 {% load cart_tags %}
 {% block content %}
-
+{% if messages %}
+    <div class="mt-5 pt-4">
+    {% include 'messages.html' %}
+    <div>
+{% endif %}
   <!-- Navbar -->
   <nav class="navbar fixed-top navbar-expand-lg navbar-light white scrolling-navbar">
     <div class="container">

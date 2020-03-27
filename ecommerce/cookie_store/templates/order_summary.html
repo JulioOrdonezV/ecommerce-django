@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
-
+{% if messages %}
+    <div class="mt-5 pt-4">
+    {% include 'messages.html' %}
+    <div>
+{% endif %}
 {% block content %}
     <main>
     <div class="container">
