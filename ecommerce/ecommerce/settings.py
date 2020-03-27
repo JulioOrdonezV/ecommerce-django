@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'stripe',
 
+
     #local
     'cookie_store'
 ]
