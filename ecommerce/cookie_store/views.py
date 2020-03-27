@@ -1,3 +1,4 @@
+import logging
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, get_object_or_404, redirect
@@ -8,6 +9,7 @@ import stripe
 
 from ecommerce.settings import STRIPE_API_KEY, STRIPE_PUBLIC_KEY
 
+logger = logging.getLogger(__name__)
 stripe.api_key = STRIPE_API_KEY
 
 from cookie_store.forms import CheckoutForm, CreditCardForm
@@ -91,16 +93,18 @@ class PaymentView(View):
                 order.save()
 
             except stripe.error.CardError as e:
-                #TODO enable logging
+
                 # Since it's a decline, stripe.error.CardError will be caught
                 #print('Status is: %s' % e.http_status)
                 #e.error.type, e.error.code
                 body = e.json_body
                 err = body.get('error',{})
                 messages.error(self.request,f"{err.get('message')}")
+                logger.error(f"{err.get('message')}")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.RateLimitError as e:
                 messages.warning(self.request,"Too many requests made to the API too quickly")
+                logger.warning("Too many requests made to the API too quickly")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.InvalidRequestError as e:
                 messages.warning(self.request,"Invalid parameters were supplied to Stripe's API")
@@ -113,9 +117,14 @@ class PaymentView(View):
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.StripeError as e:
                 messages.warning(self.request, "Something went wrong, you haven't been charged. Try again")
+                body = e.json_body
+                err = body.get('error', {})
+                logger.error(err.get('message') + " general Stripe error")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except Exception as e:
-                # TODO enable logging
+                body = e.json_body
+                err = body.get('error', {})
+                logger.error(err.get('message') + " application error")
                 messages.warning(self.request, "Something unexpected happened!")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             messages.success(self.request, "Payment processed successfully")
