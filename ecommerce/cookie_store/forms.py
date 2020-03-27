@@ -4,7 +4,7 @@ from creditcards.forms import CardNumberField, CardExpiryField, SecurityCodeFiel
 
 PAYMENT_CHOICES = (
     ('S', 'Stripe'),
-    ('P','Paypal')
+    ('P','Pagadito')
 )
 
 class CheckoutForm(forms.Form):
