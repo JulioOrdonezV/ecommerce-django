@@ -54,40 +54,87 @@ class PaymentView(View):
     def post(self, *args, **kwargs):
         form = CreditCardForm(self.request.POST or None)
         if form.is_valid():
-
-            expiry  = form.cleaned_data.get('cc_expiry')
+            expiry = form.cleaned_data.get('cc_expiry')
             cvc = form.cleaned_data.get('cc_code')
             number = form.cleaned_data.get('cc_number')
-            token = stripe.Token.create(
-                card={
-                    'number': number,
-                    'exp_month': expiry.month,
-                    'exp_year': expiry.year,
-                    'cvc': cvc
-                },
-                api_key= STRIPE_PUBLIC_KEY
-            )
-            order = Order.objects.get(completada=False)
-            total = int(order.get_total_price() * 100) #cents
-            charge = stripe.Charge.create(
-                amount=total,
-                currency='usd',
-                description='Example charge',
-                source=token,
-            )
+            try:
+                token = stripe.Token.create(
+                    card={
+                        'number': number,
+                        'exp_month': expiry.month,
+                        'exp_year': expiry.year,
+                        'cvc': cvc
+                    },
+                    api_key=STRIPE_PUBLIC_KEY
+                )
+                order = Order.objects.get(completada=False)
+                total = int(order.get_total_price() * 100)  # cents
+                charge = stripe.Charge.create(
+                    amount=total,
+                    currency='usd',
+                    description='Example charge',
+                    source=token,
+                )
 
-            order.completada = True
-            payment = Payment()
-            payment.stripe_charge_id = charge['id']
-            payment.credit_card = "*" * (len(number) - 4) + number[-4:]
-            payment.amount = order.get_total_price()
-            payment.save()
-            order.payment = payment
-            order.save()
+                order.completada = True
+                payment = Payment()
+                payment.stripe_charge_id = charge['id']
+                payment.credit_card = "*" * (len(number) - 4) + number[-4:]
+                payment.amount = order.get_total_price()
+                payment.save()
+                order.payment = payment
+                order.save()
+
+            except stripe.error.CardError as e:
+                #TODO enable logging
+                # Since it's a decline, stripe.error.CardError will be caught
+                #print('Status is: %s' % e.http_status)
+                messages.error(self.request,f"{e.errortype}" + f"{e.error.code}" + f"{e.error.message}" )
+                return redirect(reverse("cookie_store:payment", kwargs={
+                    'payment_option': kwargs.get('payment_option'),
+                    'form': form}))
+            except stripe.error.RateLimitError as e:
+                messages.warning(self.request,"Too many requests made to the API too quickly")
+                return redirect(reverse("cookie_store:payment", kwargs={
+                    'payment_option': kwargs.get('payment_option'),
+                    'form': form}))
+            except stripe.error.InvalidRequestError as e:
+                messages.warning(self.request,"Invalid parameters were supplied to Stripe's API")
+                return redirect(reverse("cookie_store:payment", kwargs={
+                            'payment_option': kwargs.get('payment_option'),
+                            'form': form}))
+            except stripe.error.AuthenticationError as e:
+                messages.warning(self.request, "Authentication with Stripe's API failed")
+                return redirect(reverse("cookie_store:payment", kwargs={
+                    'payment_option': kwargs.get('payment_option'),
+                    'form': form}))
+            except stripe.error.APIConnectionError as e:
+                messages.warning(self.request,"Network communication with Stripe failed")
+                return redirect(reverse("cookie_store:payment", kwargs={
+                    'payment_option': kwargs.get('payment_option'),
+                    'form': form}))
+            except stripe.error.StripeError as e:
+                messages.warning(self.request, "Something went wrong, you haven't been charged. Try again")
+                return redirect(reverse("cookie_store:payment", kwargs={
+                    'payment_option': kwargs.get('payment_option'),
+                    'form': form}))
+            except Exception as e:
+                # TODO enable logging
+                messages.warning(self.request, "Something unexpected happened!")
+                return redirect(reverse("cookie_store:payment", kwargs={
+                    'payment_option': kwargs.get('payment_option'),
+                    'form': form}))
+
+
 
             messages.success(self.request, "Payment processed successfully")
             return redirect("cookie_store:item-detail")
-
+        else:
+            messages.warning(self.request, form.errors)
+            return redirect(reverse("cookie_store:payment", kwargs={
+                'payment_option': kwargs.get('payment_option'),
+                'form': form
+            }))
 
         return redirect('coookie_store:item-detail')
 
