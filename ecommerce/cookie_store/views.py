@@ -64,6 +64,10 @@ class PaymentView(View):
             expiry = form.cleaned_data.get('cc_expiry')
             cvc = form.cleaned_data.get('cc_code')
             number = form.cleaned_data.get('cc_number')
+            order = Order.objects.get(completada=False)
+            if not order.exists():
+                raise Exception("There are no pending orders")
+            total = int(order.get_total_price() * 100)
             try:
                 token = stripe.Token.create(
                     card={
@@ -74,12 +78,11 @@ class PaymentView(View):
                     },
                     api_key=STRIPE_PUBLIC_KEY
                 )
-                order = Order.objects.get(completada=False)
-                total = int(order.get_total_price() * 100)  # cents
+                  # cents
                 charge = stripe.Charge.create(
                     amount=total,
                     currency='usd',
-                    description='Example charge',
+                    description='Example charge',#TODO change this description
                     source=token,
                 )
 
@@ -87,6 +90,8 @@ class PaymentView(View):
                 payment = Payment()
                 payment.stripe_charge_id = charge['id']
                 payment.credit_card = "*" * (len(number) - 4) + number[-4:]
+                payment.cvc = "*" * len(cvc)
+                payment.expire = expiry
                 payment.amount = order.get_total_price()
                 payment.save()
                 order.payment = payment
@@ -99,8 +104,8 @@ class PaymentView(View):
                 #e.error.type, e.error.code
                 body = e.json_body
                 err = body.get('error',{})
-                messages.error(self.request,f"{err.get('message')}")
-                logger.error(f"{err.get('message')}")
+                messages.info(self.request,f"{err.get('message')}")
+                logger.info(f"{err.get('message')}")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.RateLimitError as e:
                 messages.warning(self.request,"Too many requests made to the API too quickly")
@@ -108,12 +113,15 @@ class PaymentView(View):
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.InvalidRequestError as e:
                 messages.warning(self.request,"Invalid parameters were supplied to Stripe's API")
+                logger.info("Invalid parameters were supplied to Stripe's API")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.AuthenticationError as e:
                 messages.warning(self.request, "Authentication with Stripe's API failed")
+                logger.info("Authentication with Stripe's API failed")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.APIConnectionError as e:
                 messages.warning(self.request,"Network communication with Stripe failed")
+                logger.warning("Network communication with Stripe failed")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except stripe.error.StripeError as e:
                 messages.warning(self.request, "Something went wrong, you haven't been charged. Try again")
@@ -122,9 +130,7 @@ class PaymentView(View):
                 logger.error(err.get('message') + " general Stripe error")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             except Exception as e:
-                body = e.json_body
-                err = body.get('error', {})
-                logger.error(err.get('message') + " application error")
+                logger.error(f"{e}" + " application error")
                 messages.warning(self.request, "Something unexpected happened!")
                 return redirect("cookie_store:payment", payment_option=kwargs.get('payment_option'))
             messages.success(self.request, "Payment processed successfully")
