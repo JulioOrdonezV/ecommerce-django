@@ -134,9 +134,11 @@ class PaymentView(View):
             messages.success(self.request, "Payment processed successfully")
             return redirect("cookie_store:item-detail")
         else:
-            messages.warning(self.request, form.errors)
-            return redirect(reverse("cookie_store:payment", kwargs={
-                'payment_option': kwargs.get('payment_option')}))
+            for field in form:
+                if field.errors:
+                    field.field.widget.attrs['class'] = 'form-control is-invalid'
+            logger.warning("No information was sent to Stripe due to form validation errors")
+            return render(self.request, "payment.html", {'form': form})
 
         return redirect('coookie_store:item-detail')
 
