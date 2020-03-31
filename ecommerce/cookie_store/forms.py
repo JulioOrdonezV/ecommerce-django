@@ -18,12 +18,12 @@ class CheckoutForm(forms.Form):
                                       choices=PAYMENT_CHOICES)
 
 class CreditCardForm(forms.Form):
-    cc_number = CardNumberField(label='Credit card number', widget=forms.TextInput(attrs={
-        'class':'form-control'
-    }))
-    cc_expiry = CardExpiryField(label='Expiration', widget=forms.TextInput(attrs={
-        'class':'form-control'
-    }))
-    cc_code = SecurityCodeField(label='CVV', widget=forms.TextInput(attrs={
-        'class': 'form-control'
-    }))
+    cc_number = CardNumberField(label='Credit card number')
+    cc_expiry = CardExpiryField(label='Expiration')
+    cc_code = SecurityCodeField(label='CVV')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['cc_number'].widget.attrs['class'] = "form-control"
+        self.fields['cc_expiry'].widget.attrs['class'] = "form-control"
+        self.fields['cc_code'].widget.attrs['class'] = "form-control"
