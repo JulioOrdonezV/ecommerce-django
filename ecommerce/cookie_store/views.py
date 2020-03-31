@@ -65,8 +65,6 @@ class PaymentView(View):
             cvc = form.cleaned_data.get('cc_code')
             number = form.cleaned_data.get('cc_number')
             order = Order.objects.get(completada=False)
-            if not order.exists():
-                raise Exception("There are no pending orders")
             total = int(order.get_total_price() * 100)
             try:
                 token = stripe.Token.create(
@@ -82,7 +80,7 @@ class PaymentView(View):
                 charge = stripe.Charge.create(
                     amount=total,
                     currency='usd',
-                    description='Example charge',#TODO change this description
+                    description=str(order),
                     source=token,
                 )
 
