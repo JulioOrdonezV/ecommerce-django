@@ -32,7 +32,7 @@ class Order(models.Model):
         if not self.id: #si el objeto no ha sido guardado o es nuevo
             return ""
         return f"{self.id}" + " " + f"{self.cantidad}"\
-               + " of " + f"{self.items.nombre}" + " total= " f"{self.get_total_price()}"
+               + " of " + f"{self.items.nombre}" + " total= " + f"{self.get_total_price()}"
 
 class Payment(models.Model):
     credit_card = models.CharField(max_length=20)
