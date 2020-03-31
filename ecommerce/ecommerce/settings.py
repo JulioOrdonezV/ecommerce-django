@@ -25,7 +25,7 @@ SECRET_KEY = '0+xkli%3@39wuy9t(v0uod=%re(yj7nby%hs907u&@2+ovc6$^'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 STRIPE_API_KEY = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"
 STRIPE_PUBLIC_KEY = 'pk_test_TYooMQauvdEDq54NiTphI7jx'
