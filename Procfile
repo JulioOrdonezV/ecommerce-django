@@ -1,1 +1,1 @@
-web: python ecommerce/manage.py runserver 0.0.0.0:80
+web: python ecommerce/manage.py runserver 0.0.0.0:8000
