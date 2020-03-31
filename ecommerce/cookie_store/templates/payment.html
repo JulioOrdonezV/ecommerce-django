@@ -30,29 +30,30 @@
                       </div>
                     </div>
                 </div>
+
                 <div class="row justify-content-center">
                       <div class="col-md-12 mb-3">
                           {{ form.cc_number.label_tag }}
                           {{ form.cc_number }}
-                      <div class="invalid-feedback">
-                        Credit card number is required
-                      </div>
+                          <div class="invalid-feedback">
+                            {{ form.cc_number.errors }}
+                          </div>
                     </div>
               </div>
               <div class="row">
-                <div class="col-md-3 mb-3">
+                <div class="col-md-6 mb-3">
                     {{ form.cc_expiry.label_tag }}
                     {{ form.cc_expiry }}
                   <div class="invalid-feedback">
-                    Expiration date required
+                      {{ form.cc_expiry.errors }}
                   </div>
                 </div>
-                <div class="col-md-3 mb-3">
+                <div class="col-md-6 mb-3">
                     {{ form.cc_code.label_tag }}
                     {{ form.cc_code }}
-                  <div class="invalid-feedback">
-                    Security code required
-                  </div>
+                    <div class="invalid-feedback">
+                        {{ form.cc_code.errors }}
+                    </div>
                 </div>
               </div>
                 {% if messages %}
