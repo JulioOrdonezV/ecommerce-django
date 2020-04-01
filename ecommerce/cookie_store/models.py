@@ -5,12 +5,12 @@ from django.urls import reverse
 
 
 class Item(models.Model):
-    nombre = models.CharField(max_length=100)
-    precio = models.FloatField()
+    name = models.CharField(max_length=100)
+    price = models.FloatField()
 
 
     def __str__(self):
-        return self.nombre
+        return self.name
     def get_add_to_cart_url(self):
         return reverse('cookie_store:add-to-cart', kwargs={
             'pk': self.id
@@ -18,21 +18,21 @@ class Item(models.Model):
 
 
 class Order(models.Model):
-    fecha_orden = models.DateTimeField(auto_now_add=True)
-    completada = models.BooleanField(default=False)
-    cantidad = models.IntegerField(default=1)
+    order_date = models.DateTimeField(auto_now_add=True)
+    completed = models.BooleanField(default=False)
+    quantity = models.IntegerField(default=1)
     items = models.ForeignKey("Item", on_delete=models.CASCADE)
     payment = models.ForeignKey("Payment", on_delete=models.SET_NULL,
                                 blank=True, null=True)
     def get_total_price(self):
-        return self.items.precio * self.cantidad
+        return self.items.price * self.quantity
 
 
     def __str__(self):
         if not self.id: #si el objeto no ha sido guardado o es nuevo
             return ""
-        return f"{self.id}" + " " + f"{self.cantidad}"\
-               + " of " + f"{self.items.nombre}" + " total= " + f"{self.get_total_price()}"
+        return f"{self.id}" + " " + f"{self.quantity}" \
+               + " of " + f"{self.items.name}" + " total= " + f"{self.get_total_price()}"
 
 class Payment(models.Model):
     credit_card = models.CharField(max_length=20)
