@@ -29,6 +29,10 @@ ALLOWED_HOSTS = ["*"]
 
 STRIPE_API_KEY = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"
 STRIPE_PUBLIC_KEY = 'pk_test_TYooMQauvdEDq54NiTphI7jx'
+#pagadito payment API
+PG_UID="71c52b359000f09db853dbbbe0827354"
+PG_WSK="d272e5bc44511f759dae3ad2e633a74b"
+PG_URL="https://sandbox.pagadito.com/comercios/wspg/charges.php?wsdl"
 # Application definition
 
 INSTALLED_APPS = [
