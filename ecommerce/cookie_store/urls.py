@@ -17,5 +17,6 @@ urlpatterns = [
     path('order-summary/', OrderSummaryView.as_view(), name='order-sumary'),
     path('add-to-cart/<pk>', add_to_cart, name='add-to-cart'),
     path('payment/<payment_option>', PaymentView.as_view(), name='payment'),
-    path('payment-redirect', PaymentRedirect.as_view(), name="payment-redirect")
+    path('payment-redirect', PaymentRedirect.as_view(), name="payment-redirect"),
+    path('payment-redirect/<pk>/<reference_id>', PaymentRedirect.as_view(), name="payment-return")
 ]

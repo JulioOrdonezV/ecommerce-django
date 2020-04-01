@@ -149,6 +149,15 @@ class PaymentView(View):
 
 class PaymentRedirect(View):
     def get(self, *args, **kwargs):
+        order_id = kwargs.get('pk', None)
+        pg_id = kwargs.get('reference_id', None)
+        if order_id and pg_id:
+            order = get_object_or_404(Order, pk=order_id)
+            payment = self.check_payment(order, pg_id)
+            if payment:
+                order.completed=True
+                order.save()
+
         try:
             order = Order.objects.get(completed=False)
             total = order.get_total_price()
@@ -172,6 +181,18 @@ class PaymentRedirect(View):
             return redirect(url)
         except:
             pass
+
+    def check_payment(self, pg_id):
+        pg_client = Client(PG_URL)
+        resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
+        token = etree.fromstring(resp).find('value').text
+        payment_status = pg_client.service.get_status(
+            token=token,
+            token_trans=pg_id,
+            format_return="xml"
+        )
+        result = etree.fromstring(payment_status).find('status').text
+        return result == 'COMPLETED'
 
 
     def parse_order(self, order):
