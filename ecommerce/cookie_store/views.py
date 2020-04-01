@@ -148,7 +148,7 @@ class PaymentView(View):
         return redirect('coookie_store:item-detail')
 
 class PaymentRedirect(View):
-    def get(self):
+    def get(self, *args, **kwargs):
         try:
             order = Order.objects.get(completed=False)
             total = order.get_total_price()
