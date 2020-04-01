@@ -159,7 +159,7 @@ class PaymentRedirect(View):
             if payment:
                 order.completed=True
                 order.save()
-                messages.info("Payment processed successfully")
+                messages.info(self.request, "Payment processed successfully")
                 return redirect("cookie_store:item-detail")
         else:
             try:
