@@ -149,6 +149,8 @@ class PaymentView(View):
 
 class PaymentRedirect(View):
     def get(self, *args, **kwargs):
+        """this function is called to submit the payment to pagadito API and it
+        also handles the response from the payment gateway"""
         order_id = kwargs.get('pk', None)
         pg_id = kwargs.get('reference_id', None)
         if order_id and pg_id:
@@ -157,30 +159,33 @@ class PaymentRedirect(View):
             if payment:
                 order.completed=True
                 order.save()
+                messages.info("Payment processed successfully")
+                return redirect("cookie_store:item-detail")
+        else:
+            try:
+                order = Order.objects.get(completed=False)
+                total = order.get_total_price()
+                order_xml = self.parse_order(order)
+                pg_client = Client(PG_URL)
+                resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
+                token = etree.fromstring(resp).find('value').text
 
-        try:
-            order = Order.objects.get(completed=False)
-            total = order.get_total_price()
-            order_xml = self.parse_order(order)
-            pg_client = Client(PG_URL)
-            resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
-            token = etree.fromstring(resp).find('value').text
-
-            pg_url = pg_client.service.exec_trans(
-                token=token,
-                ern=order.id,
-                amount=total,
-                details=order_xml,
-                currency="USD",
-                format_return="xml",
-                custom_params="",
-                allow_pending_payments=False,
-                extended_expiration=True
-            )
-            url = parse.unquote(etree.fromstring(pg_url).find('value').text)
-            return redirect(url)
-        except:
-            pass
+                pg_url = pg_client.service.exec_trans(
+                    token=token,
+                    ern=order.id,
+                    amount=total,
+                    details=order_xml,
+                    currency="USD",
+                    format_return="xml",
+                    custom_params="",
+                    allow_pending_payments=False,
+                    extended_expiration=True
+                )
+                url = parse.unquote(etree.fromstring(pg_url).find('value').text)
+                return redirect(url)
+            except Exception as e:
+                messages.warning(self.request, "Something unexpected happened!")
+                return redirect("cookie_store:item-detail")
 
     def check_payment(self, pg_id):
         pg_client = Client(PG_URL)
