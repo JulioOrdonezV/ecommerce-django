@@ -1,12 +1,16 @@
 import logging
+from urllib import parse
+
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from lxml import etree, objectify
+from zeep import Client
 from django.views.generic.base import View
 
 import stripe
-
+from ecommerce.settings import PG_UID,PG_WSK, PG_URL
 from ecommerce.settings import STRIPE_API_KEY, STRIPE_PUBLIC_KEY
 
 logger = logging.getLogger(__name__)
@@ -19,7 +23,7 @@ from cookie_store.models import Item, Order, Payment
 class OrderSummaryView(View):
     def get(self, *args, **kwargs):
         try:
-            order = Order.objects.get(completada=False)
+            order = Order.objects.get(completed=False)
             return render(self.request,"order_summary.html", context={'order': order} )
         except ObjectDoesNotExist:
             messages.error(self.request, "You don't have an order")
@@ -41,7 +45,7 @@ class checkoutView(View):
             if payment_option == 'S':
                 return redirect("cookie_store:payment", payment_option='stripe')
             elif payment_option == 'P':
-                return redirect("cookie_store:payment", payment_option='pagadito')
+                return redirect("cookie_store:payment-redirect")
             else:
                 messages.warning(self.request, "Invalid payment option selected")
                 return redirect('cookie_store:checkout')
@@ -64,9 +68,10 @@ class PaymentView(View):
             expiry = form.cleaned_data.get('cc_expiry')
             cvc = form.cleaned_data.get('cc_code')
             number = form.cleaned_data.get('cc_number')
-            order = Order.objects.get(completada=False)
-            total = int(order.get_total_price() * 100)
+
             try:
+                order = Order.objects.get(completed=False)
+                total = int(order.get_total_price() * 100)
                 token = stripe.Token.create(
                     card={
                         'number': number,
@@ -84,7 +89,7 @@ class PaymentView(View):
                     source=token,
                 )
 
-                order.completada = True
+                order.completed = True
                 payment = Payment()
                 payment.stripe_charge_id = charge['id']
                 payment.credit_card = "*" * (len(number) - 4) + number[-4:]
@@ -142,6 +147,45 @@ class PaymentView(View):
 
         return redirect('coookie_store:item-detail')
 
+class PaymentRedirect(View):
+    def get(self):
+        try:
+            order = Order.objects.get(completed=False)
+            total = order.get_total_price()
+            order_xml = self.parse_order(order)
+            pg_client = Client(PG_URL)
+            resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
+            token = etree.fromstring(resp).find('value').text
+
+            pg_url = pg_client.service.exec_trans(
+                token=token,
+                ern=order.id,
+                amount=total,
+                details=order_xml,
+                currency="USD",
+                format_return="xml",
+                custom_params="",
+                allow_pending_payments=False,
+                extended_expiration=True
+            )
+            url = parse.unquote(etree.fromstring(pg_url).find('value').text)
+            return redirect(url)
+        except:
+            pass
+
+
+    def parse_order(self, order):
+        xml_root='''<?xml version="1.0"?><detail></detail>'''
+        xml_obj = objectify.fromstring(xml_root)
+        xml_obj.quantity = order.quantity
+        xml_obj.description = order.items.name
+        xml_obj.price = order.items.price
+        xml_obj.product_url = reverse("cookie_store:item-detail")
+        objectify.deannotate(xml_obj)
+        etree.cleanup_namespaces(xml_obj)
+        xml_string = etree.tostring(xml_obj)
+        return xml_string
+
 
 def item_detail(request):
     #just use one product
@@ -152,14 +196,14 @@ def item_detail(request):
 
 def add_to_cart(request, pk):
     item = get_object_or_404(Item, pk=pk)
-    order, created = Order.objects.filter(completada=False).get_or_create(
+    order, created = Order.objects.filter(completed=False).get_or_create(
         items=item
     )
     if created:
         messages.info(request, "Cookie added to the shopping cart")
 
     else:
-        order.cantidad += 1
+        order.quantity += 1
         order.save()
         messages.info(request, "Cookie quantity updated")
     return redirect("cookie_store:item-detail")
