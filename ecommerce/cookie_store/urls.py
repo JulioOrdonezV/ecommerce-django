@@ -5,7 +5,8 @@ from cookie_store.views import (
     add_to_cart,
     OrderSummaryView,
     checkoutView,
-    PaymentView
+    PaymentView,
+    PaymentRedirect
 )
 
 app_name = 'cookie_store'
@@ -15,5 +16,6 @@ urlpatterns = [
     path('checkout', checkoutView.as_view(), name='checkout'),
     path('order-summary/', OrderSummaryView.as_view(), name='order-sumary'),
     path('add-to-cart/<pk>', add_to_cart, name='add-to-cart'),
-    path('payment/<payment_option>', PaymentView.as_view(), name='payment')
+    path('payment/<payment_option>', PaymentView.as_view(), name='payment'),
+    path('payment_redirect', PaymentRedirect.as_view(), name="payment-redirect")
 ]
