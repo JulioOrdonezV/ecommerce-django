@@ -196,7 +196,7 @@ class PaymentRedirect(View):
             token_trans=pg_id,
             format_return="xml"
         )
-        result = etree.fromstring(payment_status).find('status').text
+        result = etree.fromstring(payment_status).find('value').find('status').text
         return result == 'COMPLETED'
 
 
