@@ -155,7 +155,7 @@ class PaymentRedirect(View):
         pg_id = kwargs.get('reference_id', None)
         if order_id and pg_id:
             order = get_object_or_404(Order, pk=order_id)
-            payment = self.check_payment(order, pg_id)
+            payment = self.check_payment(pg_id)
             if payment:
                 order.completed=True
                 order.save()
