@@ -1,5 +1,5 @@
 from django.db import models
-
+from polymorphic.models import PolymorphicModel
 # Create your models here.
 from django.urls import reverse
 
@@ -34,10 +34,12 @@ class Order(models.Model):
         return f"{self.id}" + " " + f"{self.quantity}" \
                + " of " + f"{self.items.name}" + " total= " + f"{self.get_total_price()}"
 
-class Payment(models.Model):
-    credit_card = models.CharField(max_length=20)
-    cvc = models.CharField(max_length=4)
-    expire = models.DateField()
-    stripe_charge_id = models.CharField(max_length=50)
+class Payment(PolymorphicModel):
+    charge_id = models.CharField(max_length=50)
     amount = models.FloatField()
     timestamp = models.DateTimeField(auto_now_add=True)
+
+class StripePayment(Payment):
+    credit_card= models.CharField(max_length=20)
+    cvc = models.CharField(max_length=4)
+    expire = models.DateField()

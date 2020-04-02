@@ -1,6 +1,5 @@
 import logging
 from urllib import parse
-
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, get_object_or_404, redirect
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 stripe.api_key = STRIPE_API_KEY
 
 from cookie_store.forms import CheckoutForm, CreditCardForm
-from cookie_store.models import Item, Order, Payment
+from cookie_store.models import Item, Order, Payment, StripePayment
 
 
 class OrderSummaryView(View):
@@ -90,8 +89,8 @@ class PaymentView(View):
                 )
 
                 order.completed = True
-                payment = Payment()
-                payment.stripe_charge_id = charge['id']
+                payment = StripePayment()
+                payment.charge_id = charge['id']
                 payment.credit_card = "*" * (len(number) - 4) + number[-4:]
                 payment.cvc = "*" * len(cvc)
                 payment.expire = expiry
@@ -155,7 +154,7 @@ class PaymentRedirect(View):
         pg_id = kwargs.get('reference_id', None)
         if order_id and pg_id:
             order = get_object_or_404(Order, pk=order_id)
-            payment = self.check_payment(pg_id)
+            payment = self.check_payment(pg_id, order)
             if payment:
                 order.completed=True
                 order.save()
@@ -182,22 +181,33 @@ class PaymentRedirect(View):
                     extended_expiration=True
                 )
                 url = parse.unquote(etree.fromstring(pg_url).find('value').text)
+                parsed_url = parse.urlparse(url)
+                charge = parse.parse_qs(parsed_url.query)['token'][0]
+                payment = Payment()
+                payment.amount = order.get_total_price()
+                payment.charge_id = charge
+                payment.save()
+                order.payment = payment
+                order.save()
                 return redirect(url)
             except Exception as e:
                 messages.warning(self.request, "Something unexpected happened!")
                 return redirect("cookie_store:item-detail")
 
-    def check_payment(self, pg_id):
-        pg_client = Client(PG_URL)
-        resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
-        token = etree.fromstring(resp).find('value').text
-        payment_status = pg_client.service.get_status(
-            token=token,
-            token_trans=pg_id,
-            format_return="xml"
-        )
-        result = etree.fromstring(payment_status).find('value').find('status').text
-        return result == 'COMPLETED'
+    def check_payment(self, pg_id, order):
+        if order.payment.charge_id == pg_id:
+            pg_client = Client(PG_URL)
+            resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
+            token = etree.fromstring(resp).find('value').text
+            payment_status = pg_client.service.get_status(
+                token=token,
+                token_trans=pg_id,
+                format_return="xml"
+            )
+            result = etree.fromstring(payment_status).find('value').find('status').text
+        else:
+            return False
+        return isinstance(result, str) and result == 'COMPLETED'
 
 
     def parse_order(self, order):
