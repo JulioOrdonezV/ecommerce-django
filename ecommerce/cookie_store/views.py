@@ -261,7 +261,6 @@ class PaymentRedirect(View):
             result = etree.fromstring(payment_status).find('value').find('status').text
             success = isinstance(result, str) and result == 'COMPLETED'
             if success:
-                logger.error(payment_status)
                 payment_ref = etree.fromstring(payment_status).find('value').find('reference').text
                 return payment_ref
             else:
