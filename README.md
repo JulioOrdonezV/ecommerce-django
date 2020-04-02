@@ -2,7 +2,7 @@
 this is a demo application for an ecommerce site developed with python's Django framework, its purpose is to demonstrate how 
 to process orders and payments using different payment gateways or web services (Stripe and Pagadito)
 
-###installation###
+### installation ###
 
 * clone the repository and install the requiremets by running
 `pip install -r requirements.txt`
