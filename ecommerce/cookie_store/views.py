@@ -2,6 +2,7 @@ import logging
 from urllib import parse
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
+from django.http import Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from lxml import etree, objectify
@@ -148,28 +149,28 @@ class PaymentView(View):
 class PaymentRedirect(View):
     def get(self, *args, **kwargs):
         """
-        this function is called to submit the payment to pagadito API and it
-        also handles the response from the payment gateway
+        this function is called to submit the payment to pagadito API and
+        when the payment gateway returns control to the application
         """
         order_id = kwargs.get('pk', None)
         pg_id = kwargs.get('reference_id', None)
         if order_id and pg_id:
             order = get_object_or_404(Order, pk=order_id)
-            success, pg_payment = self.check_payment(pg_id, order)
-            if success:
-                order.completed=True
+            try:
+                pg_payment = self.check_payment(pg_id, order)
+                order.completed = True
                 order.payment.charge_id = pg_payment
                 order.payment.save()
                 order.save()
                 messages.info(self.request, "Payment processed successfully")
                 return redirect("cookie_store:item-detail")
-            else:
+            except Exception as e:
+                logger.error(e.args)
                 order.payment.delete()
-                messages.info(self.request, "Payment not processed")
                 return redirect("cookie_store:item-detail")
         else:
             try:
-                order = Order.objects.get(completed=False)
+                order = get_object_or_404(Order, completed=False)
                 total = order.get_total_price()
                 order_xml = self.parse_order(order)
                 token, pg_url = self.register_transaction_pg(order.id, total, order_xml)
@@ -182,7 +183,7 @@ class PaymentRedirect(View):
                 order.save()
                 return redirect(pg_url)
             except Exception as e:
-                messages.warning(self.request, "Something unexpected happened!")
+                logger.error(e.args)
                 return redirect("cookie_store:item-detail")
 
     def connect_pg(self):
@@ -193,8 +194,16 @@ class PaymentRedirect(View):
         """
         pg_client = Client(PG_URL)
         resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
-        token = etree.fromstring(resp).find('value').text
-        return (token, pg_client)
+        result_code = etree.fromstring(resp).find('code').text
+        message = etree.fromstring(resp).find('message').text
+        if result_code == 'PG1001':
+            token = etree.fromstring(resp).find('value').text
+            return (token, pg_client)
+        else:
+            error_string = "There was an error when connecting to the gateway :" + result_code + message
+            messages.error(self.request, error_string )
+            raise Exception(error_string)
+
 
     def register_transaction_pg(self, ern, total, order_xml):
         """
@@ -217,10 +226,18 @@ class PaymentRedirect(View):
             allow_pending_payments=False,
             extended_expiration=True
         )
-        url = parse.unquote(etree.fromstring(pg_url).find('value').text)
-        parsed_url = parse.urlparse(url)
-        charge = parse.parse_qs(parsed_url.query)['token'][0]
-        return (charge, url)
+        result_code = etree.fromstring(pg_url).find('code').text
+        message = etree.fromstring(pg_url).find('message').text
+        if result_code == 'PG1002':
+            url = parse.unquote(etree.fromstring(pg_url).find('value').text)
+            parsed_url = parse.urlparse(url)
+            charge = parse.parse_qs(parsed_url.query)['token'][0]
+            return (charge, url)
+        else:
+            error_string = "There was an error registering the payment with the gateway :" + result_code + message
+            messages.error(self.request, error_string)
+            raise Exception(error_string)
+
 
 
     def check_payment(self, pg_id, order):
@@ -245,9 +262,14 @@ class PaymentRedirect(View):
             success = isinstance(result, str) and result == 'COMPLETED'
             if success:
                 payment_ref = etree.fromstring(payment_status).find('value').find('reference').text
-                return (success, payment_ref)
+                return payment_ref
+            else:
+                error_string = "The payment was not completed, status returned by the gateway:" + result
+                messages.error(self.request, error_string)
+                raise Exception(error_string)
         else:
-            return (False, None)
+            raise Http404("Charge token %S doesn't match the current order" % pg_id)
+
 
 
 
