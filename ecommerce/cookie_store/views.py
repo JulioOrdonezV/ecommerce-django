@@ -161,6 +161,7 @@ class PaymentRedirect(View):
                 messages.info(self.request, "Payment processed successfully")
                 return redirect("cookie_store:item-detail")
             else:
+                order.payment.delete()
                 messages.info(self.request, "Payment not processed")
                 return redirect("cookie_store:item-detail")
         else:
