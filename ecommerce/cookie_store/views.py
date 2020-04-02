@@ -144,7 +144,6 @@ class PaymentView(View):
             logger.warning("No information was sent to Stripe due to form validation errors")
             return render(self.request, "payment.html", {'form': form})
 
-        return redirect('coookie_store:item-detail')
 
 class PaymentRedirect(View):
     def get(self, *args, **kwargs):
@@ -156,9 +155,11 @@ class PaymentRedirect(View):
         pg_id = kwargs.get('reference_id', None)
         if order_id and pg_id:
             order = get_object_or_404(Order, pk=order_id)
-            payment = self.check_payment(pg_id, order)
-            if payment:
+            success, pg_payment = self.check_payment(pg_id, order)
+            if success:
                 order.completed=True
+                order.payment.charge_id = pg_payment
+                order.payment.save()
                 order.save()
                 messages.info(self.request, "Payment processed successfully")
                 return redirect("cookie_store:item-detail")
@@ -171,11 +172,11 @@ class PaymentRedirect(View):
                 order = Order.objects.get(completed=False)
                 total = order.get_total_price()
                 order_xml = self.parse_order(order)
-                charge, pg_url = self.register_transaction_pg(order.id, total, order_xml)
+                token, pg_url = self.register_transaction_pg(order.id, total, order_xml)
 
                 payment = Payment()
                 payment.amount = order.get_total_price()
-                payment.charge_id = charge
+                payment.charge_id = token
                 payment.save()
                 order.payment = payment
                 order.save()
@@ -234,18 +235,20 @@ class PaymentRedirect(View):
         :return: True if payment was completed, False otherwise
         """
         if order.payment.charge_id == pg_id:
-            pg_client = Client(PG_URL)
-            resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
-            token = etree.fromstring(resp).find('value').text
+            token, pg_client = self.connect_pg()
             payment_status = pg_client.service.get_status(
                 token=token,
                 token_trans=pg_id,
                 format_return="xml"
             )
             result = etree.fromstring(payment_status).find('value').find('status').text
+            success = isinstance(result, str) and result == 'COMPLETED'
+            if success:
+                payment_ref = etree.fromstring(payment_status).find('value').find('reference').text
+                return (success, payment_ref)
         else:
-            return False
-        return isinstance(result, str) and result == 'COMPLETED'
+            return (False, None)
+
 
 
     def parse_order(self, order):
