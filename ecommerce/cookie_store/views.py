@@ -148,8 +148,10 @@ class PaymentView(View):
 
 class PaymentRedirect(View):
     def get(self, *args, **kwargs):
-        """this function is called to submit the payment to pagadito API and it
-        also handles the response from the payment gateway"""
+        """
+        this function is called to submit the payment to pagadito API and it
+        also handles the response from the payment gateway
+        """
         order_id = kwargs.get('pk', None)
         pg_id = kwargs.get('reference_id', None)
         if order_id and pg_id:
@@ -169,36 +171,68 @@ class PaymentRedirect(View):
                 order = Order.objects.get(completed=False)
                 total = order.get_total_price()
                 order_xml = self.parse_order(order)
-                pg_client = Client(PG_URL)
-                resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
-                token = etree.fromstring(resp).find('value').text
+                charge, pg_url = self.register_transaction_pg(order.id, total, order_xml)
 
-                pg_url = pg_client.service.exec_trans(
-                    token=token,
-                    ern=order.id,
-                    amount=total,
-                    details=order_xml,
-                    currency="USD",
-                    format_return="xml",
-                    custom_params="",
-                    allow_pending_payments=False,
-                    extended_expiration=True
-                )
-                url = parse.unquote(etree.fromstring(pg_url).find('value').text)
-                parsed_url = parse.urlparse(url)
-                charge = parse.parse_qs(parsed_url.query)['token'][0]
                 payment = Payment()
                 payment.amount = order.get_total_price()
                 payment.charge_id = charge
                 payment.save()
                 order.payment = payment
                 order.save()
-                return redirect(url)
+                return redirect(pg_url)
             except Exception as e:
                 messages.warning(self.request, "Something unexpected happened!")
                 return redirect("cookie_store:item-detail")
 
+    def connect_pg(self):
+        """
+        connects to the pg payment gateway with soap
+        :return: token=token to use to register transactions and check status,
+        client=the soap client to perform other transactions.
+        """
+        pg_client = Client(PG_URL)
+        resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
+        token = etree.fromstring(resp).find('value').text
+        return (token, pg_client)
+
+    def register_transaction_pg(self, ern, total, order_xml):
+        """
+        register the pg transaction with the payment gateway using soap with python zeep client
+        :param ern: local order reference number
+        :param total: order total
+        :param order_xml: the order in xml format
+        :return: token = token of registered transaction, url = the url of the payment gateway
+        where the user will be redirected
+        """
+        token, pg_client = self.connect_pg()
+        pg_url = pg_client.service.exec_trans(
+            token=token,
+            ern=ern,
+            amount=total,
+            details=order_xml,
+            currency="USD",
+            format_return="xml",
+            custom_params="",
+            allow_pending_payments=False,
+            extended_expiration=True
+        )
+        url = parse.unquote(etree.fromstring(pg_url).find('value').text)
+        parsed_url = parse.urlparse(url)
+        charge = parse.parse_qs(parsed_url.query)['token'][0]
+        return (charge, url)
+
+
     def check_payment(self, pg_id, order):
+        """
+        checks if the payment was processed by the payment gateway
+        :param pg_id: transaction token (is not the same as the payment reference that is returned
+        after the payment has been processed)
+        :param order: the order that needs to be checked against. the transaction reference is kept
+        temporarily in the payment.charge_id. but this field should be use to save the payment reference.
+        The field is updated with the payment reference once the payment is confirmed if not, the payment
+        object is deleted completely
+        :return: True if payment was completed, False otherwise
+        """
         if order.payment.charge_id == pg_id:
             pg_client = Client(PG_URL)
             resp = pg_client.service.connect(uid=PG_UID, wsk=PG_WSK, format_return="xml")
@@ -215,6 +249,11 @@ class PaymentRedirect(View):
 
 
     def parse_order(self, order):
+        """
+        creates an xml from the order object to use with the soap client
+        :param order: the order object
+        :return: xml_string of the order
+        """
         xml_root='''<?xml version="1.0"?><detail></detail>'''
         xml_obj = objectify.fromstring(xml_root)
         xml_obj.quantity = order.quantity
